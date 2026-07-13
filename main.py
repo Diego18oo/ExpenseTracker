@@ -1,4 +1,5 @@
 from fastapi import FastAPI
+from fastapi.middleware.cors import CORSMiddleware
 from routers import gastos
 
 app = FastAPI(
@@ -7,9 +8,17 @@ app = FastAPI(
     version="1.0.0"
 )
 
-# Registramos las rutas
+# --- CONFIGURACIÓN DE CORS ---
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["*"], # En producción aquí va la URL del frontend
+    allow_credentials=True,
+    allow_methods=["*"], # Permite GET, POST, etc.
+    allow_headers=["*"],
+)
+
 app.include_router(gastos.router)
 
 @app.get("/")
 def root():
-    return {"mensaje": "Estoy dentro "}
+    return {"mensaje": "ESTA VIVO! "}

@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react'
-
+const API_URL = import.meta.env.VITE_API_URL || 'http://127.0.0.1:8000';
 function App() {
   const [gastos, setGastos] = useState([])
   const [cargando, setCargando] = useState(false)
@@ -9,7 +9,6 @@ function App() {
   const cargarGastos = async () => {
     setCargando(true)
     try {
-      const API_URL = import.meta.env.VITE_API_URL || 'http://127.0.0.1:8000';
       const respuesta = await fetch(`${API_URL}/gastos/`);
       const data = await respuesta.json()
       setGastos(data.gastos)
@@ -23,7 +22,7 @@ function App() {
   const sincronizarCorreos = async () => {
     setSincronizando(true)
     try {
-      const respuesta = await fetch('http://127.0.0.1:8000/gastos/sincronizar', {
+      const respuesta = await fetch(`${API_URL}/gastos/sincronizar`, {
         method: 'POST'
       })
       const data = await respuesta.json()

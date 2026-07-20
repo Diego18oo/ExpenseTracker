@@ -48,8 +48,9 @@ function App() {
   const cargarGastos = async () => {
     setCargando(true)
     try {
-      // Más adelante aquí tengo que agregar el token de la sesión en los headers
-      const respuesta = await fetch(`${API_URL}/gastos/`)
+      const respuesta = await fetch(`${API_URL}/gastos/`, {
+        headers: { 'Authorization': `Bearer ${session.access_token}` }
+      })
       const data = await respuesta.json()
       setGastos(data.gastos || [])
     } catch (error) {
@@ -61,7 +62,10 @@ function App() {
   const sincronizarCorreos = async () => {
     setSincronizando(true)
     try {
-      const respuesta = await fetch(`${API_URL}/gastos/sincronizar`, { method: 'POST' })
+      const respuesta = await fetch(`${API_URL}/gastos/sincronizar`, { 
+        method: 'POST',
+        headers: { 'Authorization': `Bearer ${session.access_token}` }
+      })
       const data = await respuesta.json()
       alert(data.mensaje + ` (${data.agregados} gastos nuevos)`)
       cargarGastos() 
@@ -82,7 +86,6 @@ function App() {
     const url = formData.id ? `${API_URL}/gastos/${formData.id}` : `${API_URL}/gastos/manual`
     const metodo = formData.id ? 'PUT' : 'POST'
     
-    // Preparar datos asegurando los tipos correctos
     const bodyData = {
       monto: parseFloat(formData.monto),
       comercio: formData.comercio,
@@ -93,11 +96,14 @@ function App() {
     try {
       await fetch(url, {
         method: metodo,
-        headers: { 'Content-Type': 'application/json' },
+        headers: { 
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${session.access_token}` 
+        },
         body: JSON.stringify(bodyData)
       })
       alert(`Gasto ${formData.id ? 'actualizado' : 'agregado'} con éxito`)
-      setFormData({ id: null, monto: '', comercio: '', fecha_gasto: '', categoria_id: '' }) // Limpiar formulario
+      setFormData({ id: null, monto: '', comercio: '', fecha_gasto: '', categoria_id: '' })
       cargarGastos()
     } catch (error) {
       console.error("Error al guardar:", error)
@@ -119,7 +125,10 @@ function App() {
   const eliminarGasto = async (id) => {
     if (!window.confirm("¿Seguro que quieres eliminar este gasto?")) return;
     try {
-      await fetch(`${API_URL}/gastos/${id}`, { method: 'DELETE' })
+      await fetch(`${API_URL}/gastos/${id}`, { 
+        method: 'DELETE',
+        headers: { 'Authorization': `Bearer ${session.access_token}` } 
+      })
       cargarGastos()
     } catch (error) {
       console.error("Error al eliminar:", error)
@@ -144,7 +153,7 @@ function App() {
       alert("Hubo un error al conectar con Google.")
     }
   }
-  // RUTA PROTEGIDA (El "Cadenero")
+  // RUTA PROTEGIDA 
   if (!session) {
     return (
       <div style={{ maxWidth: '400px', margin: '100px auto', fontFamily: 'system-ui', textAlign: 'center', padding: '30px', border: '1px solid #eaeaea', borderRadius: '12px', boxShadow: '0 4px 6px rgba(0,0,0,0.05)' }}>

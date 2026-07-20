@@ -13,32 +13,24 @@ const CATEGORIAS = [
 ];
 
 function App() {
-  // NUEVO ESTADO PARA LA SESIÓN
   const [session, setSession] = useState(null)
-  
   const [gastos, setGastos] = useState([])
   const [cargando, setCargando] = useState(false)
   const [sincronizando, setSincronizando] = useState(false)
   const [formData, setFormData] = useState({ id: null, monto: '', comercio: '', fecha_gasto: '', categoria_id: '' })
 
-  //  EFECTO DE AUTENTICACIÓN 
+  // EFECTO DE AUTENTICACIÓN
   useEffect(() => {
-    //Revisar si ya hay una sesión guardada al abrir la página
     supabase.auth.getSession().then(({ data: { session } }) => {
       setSession(session)
     })
-
-    // Escuchar cambios para cuando el usuario inicie o cierre sesión
-    const {
-      data: { subscription },
-    } = supabase.auth.onAuthStateChange((_event, session) => {
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
       setSession(session)
     })
-
     return () => subscription.unsubscribe()
   }, [])
 
-  // cargarGastos solo se ejecute si hay sesión
+  // CARGAR GASTOS AL INICIAR SESIÓN
   useEffect(() => {
     if (session) {
       cargarGastos()
@@ -54,7 +46,7 @@ function App() {
       const data = await respuesta.json()
       setGastos(data.gastos || [])
     } catch (error) {
-      console.error("Error al cargar los gastos:", error)
+      console.error("Error al cargar:", error)
     }
     setCargando(false)
   }
@@ -71,11 +63,10 @@ function App() {
       cargarGastos() 
     } catch (error) {
       console.error("Error al sincronizar:", error)
+      alert("Hubo un error al sincronizar")
     }
     setSincronizando(false)
   }
-
-  // --- NUEVAS FUNCIONALIDADES CRUD ---
 
   const manejarCambioInput = (e) => {
     setFormData({ ...formData, [e.target.name]: e.target.value })
@@ -111,7 +102,6 @@ function App() {
   }
 
   const editarGasto = (gasto) => {
-    // Formatear la fecha para el input tipo date
     const fecha = new Date(gasto.fecha_gasto).toISOString().split('T')[0]
     setFormData({
       id: gasto.id,
@@ -138,48 +128,26 @@ function App() {
   const cerrarSesion = async () => {
     await supabase.auth.signOut()
   }
+
   const iniciarSesionConGoogle = async () => {
     try {
       const { error } = await supabase.auth.signInWithOAuth({
         provider: 'google',
-        options: {
-          // Si estás en desarrollo local será localhost, si ya estás en Vercel, Supabase lo manejará solo
-          redirectTo: window.location.origin 
-        }
+        options: { redirectTo: window.location.origin }
       })
       if (error) throw error
     } catch (error) {
-      console.error("Error al iniciar sesión:", error)
-      alert("Hubo un error al conectar con Google.")
+      console.error("Error:", error)
     }
   }
-  // RUTA PROTEGIDA 
+
+  // PANTALLA DE LOGIN
   if (!session) {
     return (
       <div style={{ maxWidth: '400px', margin: '100px auto', fontFamily: 'system-ui', textAlign: 'center', padding: '30px', border: '1px solid #eaeaea', borderRadius: '12px', boxShadow: '0 4px 6px rgba(0,0,0,0.05)' }}>
         <h2 style={{ marginBottom: '10px' }}>Bienvenido a Mis Gastos 💸</h2>
         <p style={{ color: '#666', marginBottom: '30px' }}>Inicia sesión de forma segura para gestionar tus finanzas.</p>
-        
-        <button 
-          onClick={iniciarSesionConGoogle}
-          style={{ 
-            display: 'flex', 
-            alignItems: 'center', 
-            justifyContent: 'center', 
-            gap: '10px', 
-            width: '100%', 
-            padding: '12px', 
-            backgroundColor: 'white', 
-            color: '#333', 
-            border: '1px solid #ccc', 
-            borderRadius: '8px', 
-            fontSize: '1rem',
-            fontWeight: '500',
-            cursor: 'pointer',
-            transition: 'background-color 0.2s'
-          }}
-        >
-          {/* Un pequeño ícono de Google en SVG */}
+        <button onClick={iniciarSesionConGoogle} style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '10px', width: '100%', padding: '12px', backgroundColor: 'white', color: '#333', border: '1px solid #ccc', borderRadius: '8px', fontSize: '1rem', fontWeight: '500', cursor: 'pointer' }}>
           <svg width="20" height="20" viewBox="0 0 24 24">
             <path d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z" fill="#4285F4"/>
             <path d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z" fill="#34A853"/>
@@ -192,29 +160,72 @@ function App() {
     )
   }
 
-  // RUTA PRINCIPAL
+  // PANTALLA PRINCIPAL
   return (
     <div style={{ maxWidth: '600px', margin: '0 auto', fontFamily: 'system-ui', padding: '20px' }}>
       <header style={{ display: 'flex', flexDirection: 'column', gap: '10px', marginBottom: '20px' }}>
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
           <h1>Mis Gastos 💸</h1>
-          {/* Botón para cerrar sesión */}
           <button onClick={cerrarSesion} style={{ background: 'none', border: 'none', color: '#ff4d4f', cursor: 'pointer', textDecoration: 'underline' }}>
             Cerrar sesión
           </button>
         </div>
-        <button 
-          onClick={sincronizarCorreos} 
-          disabled={sincronizando}
-          style={{ padding: '10px 15px', cursor: 'pointer', backgroundColor: '#0070f3', color: 'white', border: 'none', borderRadius: '5px' }}
-        >
+        <button onClick={sincronizarCorreos} disabled={sincronizando} style={{ padding: '10px 15px', cursor: 'pointer', backgroundColor: '#0070f3', color: 'white', border: 'none', borderRadius: '5px' }}>
           {sincronizando ? '🔄 Buscando...' : '🔄 Sincronizar Gmail'}
         </button>
       </header>
 
-      {/* Aquí va el resto de tu interfaz (Formulario y Lista de gastos) exactamente igual */}
-      <p>Bienvenido. Tu ID seguro es: <span style={{fontSize: '0.8rem', color: 'gray'}}>{session.user.id}</span></p>
-      
+      {/* FORMULARIO */}
+      <div style={{ backgroundColor: '#f9f9f9', padding: '15px', borderRadius: '8px', marginBottom: '20px' }}>
+        <h3>{formData.id ? '✏️ Editar Gasto' : '➕ Agregar Gasto Manual'}</h3>
+        <form onSubmit={guardarGasto} style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
+          <input type="text" name="comercio" placeholder="Comercio" value={formData.comercio} onChange={manejarCambioInput} required style={{ padding: '8px' }} />
+          <input type="number" step="0.01" name="monto" placeholder="Monto ($)" value={formData.monto} onChange={manejarCambioInput} required style={{ padding: '8px' }} />
+          <input type="date" name="fecha_gasto" value={formData.fecha_gasto} onChange={manejarCambioInput} required style={{ padding: '8px' }} />
+          <select name="categoria_id" value={formData.categoria_id} onChange={manejarCambioInput} style={{ padding: '8px' }}>
+            <option value="">-- Sin Categoría --</option>
+            {CATEGORIAS.map(cat => <option key={cat.id} value={cat.id}>{cat.nombre}</option>)}
+          </select>
+          <div style={{ display: 'flex', gap: '10px' }}>
+            <button type="submit" style={{ flex: 1, padding: '10px', backgroundColor: '#28a745', color: 'white', border: 'none', borderRadius: '5px' }}>
+              {formData.id ? 'Actualizar' : 'Guardar'}
+            </button>
+            {formData.id && (
+              <button type="button" onClick={() => setFormData({ id: null, monto: '', comercio: '', fecha_gasto: '', categoria_id: '' })} style={{ padding: '10px', backgroundColor: '#6c757d', color: 'white', border: 'none', borderRadius: '5px' }}>
+                Cancelar
+              </button>
+            )}
+          </div>
+        </form>
+      </div>
+
+      {/* LISTA DE GASTOS */}
+      {cargando ? (
+        <p>Cargando datos...</p>
+      ) : (
+        <ul style={{ listStyle: 'none', padding: 0 }}>
+          {gastos.map((gasto) => {
+            const categoria = CATEGORIAS.find(c => c.id === gasto.categoria_id);
+            return (
+              <li key={gasto.id} style={{ borderBottom: '1px solid #eaeaea', padding: '15px 0', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                <div>
+                  <strong>{gasto.comercio}</strong> {categoria && <span style={{ fontSize: '0.8rem', backgroundColor: '#e2e8f0', padding: '2px 6px', borderRadius: '10px', marginLeft: '5px' }}>{categoria.nombre}</span>}
+                  <br/>
+                  <small style={{ color: '#666' }}>{new Date(gasto.fecha_gasto).toLocaleDateString()}</small>
+                </div>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '15px' }}>
+                  <div style={{ fontSize: '1.2rem', fontWeight: 'bold' }}>${gasto.monto}</div>
+                  <div style={{ display: 'flex', gap: '5px' }}>
+                    <button onClick={() => editarGasto(gasto)} style={{ cursor: 'pointer', padding: '5px 8px', border: '1px solid #ccc', borderRadius: '3px', background: 'white' }}>✏️</button>
+                    <button onClick={() => eliminarGasto(gasto.id)} style={{ cursor: 'pointer', padding: '5px 8px', border: '1px solid #ff4d4f', color: '#ff4d4f', borderRadius: '3px', background: 'white' }}>🗑️</button>
+                  </div>
+                </div>
+              </li>
+            )
+          })}
+        </ul>
+      )}
+      <p style={{marginTop: '20px'}}>ID de usuario: <span style={{fontSize: '0.8rem', color: 'gray'}}>{session.user.id}</span></p>
     </div>
   )
 }

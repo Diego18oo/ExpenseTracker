@@ -1,5 +1,6 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useMemo } from 'react'
 import { supabase } from './supabaseClient'
+import { PieChart, Pie, Cell, BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, Legend, CartesianGrid } from 'recharts'
 
 const API_URL = import.meta.env.VITE_API_URL || 'http://127.0.0.1:8000';
 
@@ -7,10 +8,13 @@ const CATEGORIAS = [
   { id: 1, nombre: 'Alimentos y Bebidas' },
   { id: 2, nombre: 'Transporte' },
   { id: 3, nombre: 'Suscripciones y Software' },
-  { id: 4, nombre: 'Apuestas y Juegos' },
+  { id: 4, nombre: 'Escuela' },
   { id: 5, nombre: 'Entretenimiento' },
   { id: 6, nombre: 'Otros' }
 ];
+
+// Paleta de colores para las gráficas
+const COLORES = ['#0088FE', '#00C49F', '#FFBB28', '#FF8042', '#8884d8', '#ff6666'];
 
 function App() {
   const [session, setSession] = useState(null)
@@ -19,10 +23,7 @@ function App() {
   const [sincronizando, setSincronizando] = useState(false)
   const [formData, setFormData] = useState({ id: null, monto: '', comercio: '', fecha_gasto: '', categoria_id: '' })
 
-  
-  // GUARDAR CREDENCIALES EN SUPABASE
   const guardarCredenciales = async (session) => {
-    // Si la sesión trae el token de Google, se guarda en la tabla
     if (session?.provider_token) {
       const tokenData = {
         access_token: session.provider_token,
@@ -36,7 +37,6 @@ function App() {
     }
   }
 
-  // EFECTO DE AUTENTICACIÓN ACTUALIZADO 
   useEffect(() => {
     supabase.auth.getSession().then(({ data: { session } }) => {
       setSession(session)
@@ -49,29 +49,6 @@ function App() {
     return () => subscription.unsubscribe()
   }, [])
 
-  //  LOGIN CON GOOGLE ACTUALIZADO 
-  const iniciarSesionConGoogle = async () => {
-    try {
-      const { error } = await supabase.auth.signInWithOAuth({
-        provider: 'google',
-        options: { 
-          redirectTo: window.location.origin,
-          // PEDIMOS PERMISO PARA LEER GMAIL
-          scopes: 'https://www.googleapis.com/auth/gmail.readonly',
-          // OBLIGAMOS A GOOGLE A DARNOS UN REFRESH TOKEN
-          queryParams: {
-            access_type: 'offline',
-            prompt: 'consent',
-          }
-        }
-      })
-      if (error) throw error
-    } catch (error) {
-      console.error("Error:", error)
-    }
-  }
-  
-  // CARGAR GASTOS AL INICIAR SESIÓN
   useEffect(() => {
     if (session) {
       cargarGastos()
@@ -170,9 +147,54 @@ function App() {
     await supabase.auth.signOut()
   }
 
-  
+  const iniciarSesionConGoogle = async () => {
+    try {
+      const { error } = await supabase.auth.signInWithOAuth({
+        provider: 'google',
+        options: { 
+          redirectTo: window.location.origin,
+          scopes: 'https://www.googleapis.com/auth/gmail.readonly',
+          queryParams: { access_type: 'offline', prompt: 'consent' }
+        }
+      })
+      if (error) throw error
+    } catch (error) {
+      console.error("Error:", error)
+    }
+  }
 
-  // PANTALLA DE LOGIN
+  // LÓGICA DE GRÁFICAS
+  
+  // Datos para la gráfica de Pastel (Sumar por Categoría)
+  const datosPastel = useMemo(() => {
+    const agrupado = {};
+    gastos.forEach(g => {
+      const cat = CATEGORIAS.find(c => c.id === g.categoria_id)?.nombre || 'Otros';
+      agrupado[cat] = (agrupado[cat] || 0) + parseFloat(g.monto);
+    });
+    // Convertir a un arreglo y ordenar de mayor a menor gasto
+    return Object.keys(agrupado)
+      .map(key => ({ name: key, value: agrupado[key] }))
+      .sort((a, b) => b.value - a.value);
+  }, [gastos]);
+
+  // Datos para la gráfica de Barras (Sumar por Mes)
+  const datosBarras = useMemo(() => {
+    const agrupado = {};
+    gastos.forEach(g => {
+      // Extraemos solo el año y mes (Ej: "2026-07")
+      const mes = g.fecha_gasto.substring(0, 7); 
+      agrupado[mes] = (agrupado[mes] || 0) + parseFloat(g.monto);
+    });
+    // Convertir a un arreglo y ordenar cronológicamente
+    return Object.keys(agrupado)
+      .sort()
+      .map(key => ({ mes: key, total: agrupado[key] }));
+  }, [gastos]);
+
+
+  // PANTALLAS
+  
   if (!session) {
     return (
       <div style={{ maxWidth: '400px', margin: '100px auto', fontFamily: 'system-ui', textAlign: 'center', padding: '30px', border: '1px solid #eaeaea', borderRadius: '12px', boxShadow: '0 4px 6px rgba(0,0,0,0.05)' }}>
@@ -191,9 +213,8 @@ function App() {
     )
   }
 
-  // PANTALLA PRINCIPAL
   return (
-    <div style={{ maxWidth: '600px', margin: '0 auto', fontFamily: 'system-ui', padding: '20px' }}>
+    <div style={{ maxWidth: '800px', margin: '0 auto', fontFamily: 'system-ui', padding: '20px' }}>
       <header style={{ display: 'flex', flexDirection: 'column', gap: '10px', marginBottom: '20px' }}>
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
           <h1>Mis Gastos 💸</h1>
@@ -201,62 +222,107 @@ function App() {
             Cerrar sesión
           </button>
         </div>
-        <button onClick={sincronizarCorreos} disabled={sincronizando} style={{ padding: '10px 15px', cursor: 'pointer', backgroundColor: '#0070f3', color: 'white', border: 'none', borderRadius: '5px' }}>
+        <button onClick={sincronizarCorreos} disabled={sincronizando} style={{ padding: '10px 15px', cursor: 'pointer', backgroundColor: '#0070f3', color: 'white', border: 'none', borderRadius: '5px', width: 'fit-content' }}>
           {sincronizando ? '🔄 Buscando...' : '🔄 Sincronizar Gmail'}
         </button>
       </header>
 
-      {/* FORMULARIO */}
-      <div style={{ backgroundColor: '#f9f9f9', padding: '15px', borderRadius: '8px', marginBottom: '20px' }}>
-        <h3>{formData.id ? '✏️ Editar Gasto' : '➕ Agregar Gasto Manual'}</h3>
-        <form onSubmit={guardarGasto} style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
-          <input type="text" name="comercio" placeholder="Comercio" value={formData.comercio} onChange={manejarCambioInput} required style={{ padding: '8px' }} />
-          <input type="number" step="0.01" name="monto" placeholder="Monto ($)" value={formData.monto} onChange={manejarCambioInput} required style={{ padding: '8px' }} />
-          <input type="date" name="fecha_gasto" value={formData.fecha_gasto} onChange={manejarCambioInput} required style={{ padding: '8px' }} />
-          <select name="categoria_id" value={formData.categoria_id} onChange={manejarCambioInput} style={{ padding: '8px' }}>
-            <option value="">-- Sin Categoría --</option>
-            {CATEGORIAS.map(cat => <option key={cat.id} value={cat.id}>{cat.nombre}</option>)}
-          </select>
-          <div style={{ display: 'flex', gap: '10px' }}>
-            <button type="submit" style={{ flex: 1, padding: '10px', backgroundColor: '#28a745', color: 'white', border: 'none', borderRadius: '5px' }}>
-              {formData.id ? 'Actualizar' : 'Guardar'}
-            </button>
-            {formData.id && (
-              <button type="button" onClick={() => setFormData({ id: null, monto: '', comercio: '', fecha_gasto: '', categoria_id: '' })} style={{ padding: '10px', backgroundColor: '#6c757d', color: 'white', border: 'none', borderRadius: '5px' }}>
-                Cancelar
-              </button>
-            )}
+      {/* ZONA DE DASHBOARD (GRÁFICAS) */}
+      {!cargando && gastos.length > 0 && (
+        <div style={{ display: 'flex', flexWrap: 'wrap', gap: '20px', marginBottom: '30px' }}>
+          
+          {/* Gráfica de Pastel */}
+          <div style={{ flex: '1 1 300px', backgroundColor: '#fff', padding: '20px', borderRadius: '10px', border: '1px solid #eaeaea', boxShadow: '0 2px 4px rgba(0,0,0,0.02)' }}>
+            <h3 style={{ textAlign: 'center', marginTop: 0, color: '#333' }}>Gastos por Categoría</h3>
+            <div style={{ width: '100%', height: 250 }}>
+              <ResponsiveContainer>
+                <PieChart>
+                  <Pie data={datosPastel} dataKey="value" nameKey="name" cx="50%" cy="50%" outerRadius={80} fill="#8884d8" label>
+                    {datosPastel.map((entry, index) => (
+                      <Cell key={`cell-${index}`} fill={COLORES[index % COLORES.length]} />
+                    ))}
+                  </Pie>
+                  <Tooltip formatter={(value) => `$${value.toFixed(2)}`} />
+                  <Legend />
+                </PieChart>
+              </ResponsiveContainer>
+            </div>
           </div>
-        </form>
-      </div>
 
-      {/* LISTA DE GASTOS */}
-      {cargando ? (
-        <p>Cargando datos...</p>
-      ) : (
-        <ul style={{ listStyle: 'none', padding: 0 }}>
-          {gastos.map((gasto) => {
-            const categoria = CATEGORIAS.find(c => c.id === gasto.categoria_id);
-            return (
-              <li key={gasto.id} style={{ borderBottom: '1px solid #eaeaea', padding: '15px 0', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                <div>
-                  <strong>{gasto.comercio}</strong> {categoria && <span style={{ fontSize: '0.8rem', backgroundColor: '#e2e8f0', padding: '2px 6px', borderRadius: '10px', marginLeft: '5px' }}>{categoria.nombre}</span>}
-                  <br/>
-                  <small style={{ color: '#666' }}>{new Date(gasto.fecha_gasto).toLocaleDateString()}</small>
-                </div>
-                <div style={{ display: 'flex', alignItems: 'center', gap: '15px' }}>
-                  <div style={{ fontSize: '1.2rem', fontWeight: 'bold' }}>${gasto.monto}</div>
-                  <div style={{ display: 'flex', gap: '5px' }}>
-                    <button onClick={() => editarGasto(gasto)} style={{ cursor: 'pointer', padding: '5px 8px', border: '1px solid #ccc', borderRadius: '3px', background: 'white' }}>✏️</button>
-                    <button onClick={() => eliminarGasto(gasto.id)} style={{ cursor: 'pointer', padding: '5px 8px', border: '1px solid #ff4d4f', color: '#ff4d4f', borderRadius: '3px', background: 'white' }}>🗑️</button>
-                  </div>
-                </div>
-              </li>
-            )
-          })}
-        </ul>
+          {/* Gráfica de Barras */}
+          <div style={{ flex: '1 1 300px', backgroundColor: '#fff', padding: '20px', borderRadius: '10px', border: '1px solid #eaeaea', boxShadow: '0 2px 4px rgba(0,0,0,0.02)' }}>
+            <h3 style={{ textAlign: 'center', marginTop: 0, color: '#333' }}>Tendencia Mensual</h3>
+            <div style={{ width: '100%', height: 250 }}>
+              <ResponsiveContainer>
+                <BarChart data={datosBarras}>
+                  <CartesianGrid strokeDasharray="3 3" vertical={false} />
+                  <XAxis dataKey="mes" />
+                  <YAxis tickFormatter={(value) => `$${value}`} width={60} />
+                  <Tooltip formatter={(value) => `$${value.toFixed(2)}`} />
+                  <Bar dataKey="total" fill="#0070f3" radius={[4, 4, 0, 0]} />
+                </BarChart>
+              </ResponsiveContainer>
+            </div>
+          </div>
+
+        </div>
       )}
-      <p style={{marginTop: '20px'}}>ID de usuario: <span style={{fontSize: '0.8rem', color: 'gray'}}>{session.user.id}</span></p>
+
+      {/* FORMULARIO Y LISTA DE GASTOS */}
+      <div style={{ display: 'flex', gap: '20px', flexWrap: 'wrap' }}>
+        <div style={{ flex: '1 1 300px', backgroundColor: '#f9f9f9', padding: '15px', borderRadius: '8px', height: 'fit-content' }}>
+          <h3 style={{marginTop: 0}}>{formData.id ? '✏️ Editar Gasto' : '➕ Agregar Gasto'}</h3>
+          <form onSubmit={guardarGasto} style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
+            <input type="text" name="comercio" placeholder="Comercio" value={formData.comercio} onChange={manejarCambioInput} required style={{ padding: '8px', border: '1px solid #ccc', borderRadius: '4px' }} />
+            <input type="number" step="0.01" name="monto" placeholder="Monto ($)" value={formData.monto} onChange={manejarCambioInput} required style={{ padding: '8px', border: '1px solid #ccc', borderRadius: '4px' }} />
+            <input type="date" name="fecha_gasto" value={formData.fecha_gasto} onChange={manejarCambioInput} required style={{ padding: '8px', border: '1px solid #ccc', borderRadius: '4px' }} />
+            <select name="categoria_id" value={formData.categoria_id} onChange={manejarCambioInput} style={{ padding: '8px', border: '1px solid #ccc', borderRadius: '4px' }}>
+              <option value="">-- Sin Categoría --</option>
+              {CATEGORIAS.map(cat => <option key={cat.id} value={cat.id}>{cat.nombre}</option>)}
+            </select>
+            <div style={{ display: 'flex', gap: '10px' }}>
+              <button type="submit" style={{ flex: 1, padding: '10px', backgroundColor: '#28a745', color: 'white', border: 'none', borderRadius: '5px', cursor: 'pointer' }}>
+                {formData.id ? 'Actualizar' : 'Guardar'}
+              </button>
+              {formData.id && (
+                <button type="button" onClick={() => setFormData({ id: null, monto: '', comercio: '', fecha_gasto: '', categoria_id: '' })} style={{ padding: '10px', backgroundColor: '#6c757d', color: 'white', border: 'none', borderRadius: '5px', cursor: 'pointer' }}>
+                  Cancelar
+                </button>
+              )}
+            </div>
+          </form>
+        </div>
+
+        <div style={{ flex: '2 1 400px' }}>
+          {cargando ? (
+            <p>Cargando datos...</p>
+          ) : (
+            <ul style={{ listStyle: 'none', padding: 0, margin: 0 }}>
+              {gastos.map((gasto) => {
+                const categoria = CATEGORIAS.find(c => c.id === gasto.categoria_id);
+                return (
+                  <li key={gasto.id} style={{ borderBottom: '1px solid #eaeaea', padding: '15px 0', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                    <div>
+                      <strong>{gasto.comercio}</strong> 
+                      {categoria && <span style={{ fontSize: '0.75rem', backgroundColor: '#e2e8f0', color: '#475569', padding: '3px 8px', borderRadius: '12px', marginLeft: '8px', fontWeight: '500' }}>{categoria.nombre}</span>}
+                      <br/>
+                      <small style={{ color: '#888' }}>{new Date(gasto.fecha_gasto).toLocaleDateString()}</small>
+                    </div>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '15px' }}>
+                      <div style={{ fontSize: '1.2rem', fontWeight: 'bold', color: '#333' }}>${gasto.monto}</div>
+                      <div style={{ display: 'flex', gap: '5px' }}>
+                        <button onClick={() => editarGasto(gasto)} style={{ cursor: 'pointer', padding: '6px 10px', border: '1px solid #e2e8f0', borderRadius: '6px', background: 'white' }}>✏️</button>
+                        <button onClick={() => eliminarGasto(gasto.id)} style={{ cursor: 'pointer', padding: '6px 10px', border: '1px solid #fee2e2', color: '#ef4444', borderRadius: '6px', background: '#fef2f2' }}>🗑️</button>
+                      </div>
+                    </div>
+                  </li>
+                )
+              })}
+              {gastos.length === 0 && <p style={{textAlign: 'center', color: '#666'}}>No hay gastos registrados. ¡Agrega uno o sincroniza tu correo!</p>}
+            </ul>
+          )}
+        </div>
+      </div>
     </div>
   )
 }

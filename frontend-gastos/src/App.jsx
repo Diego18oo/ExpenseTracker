@@ -19,17 +19,58 @@ function App() {
   const [sincronizando, setSincronizando] = useState(false)
   const [formData, setFormData] = useState({ id: null, monto: '', comercio: '', fecha_gasto: '', categoria_id: '' })
 
-  // EFECTO DE AUTENTICACIÓN
+  
+  // GUARDAR CREDENCIALES EN SUPABASE
+  const guardarCredenciales = async (session) => {
+    // Si la sesión trae el token de Google, se guarda en la tabla
+    if (session?.provider_token) {
+      const tokenData = {
+        access_token: session.provider_token,
+        refresh_token: session.provider_refresh_token
+      }
+      await supabase.from('credenciales_google').upsert({
+        usuario_id: session.user.id,
+        token_data: tokenData,
+        actualizado_en: new Date().toISOString()
+      })
+    }
+  }
+
+  // EFECTO DE AUTENTICACIÓN ACTUALIZADO 
   useEffect(() => {
     supabase.auth.getSession().then(({ data: { session } }) => {
       setSession(session)
+      guardarCredenciales(session)
     })
     const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
       setSession(session)
+      guardarCredenciales(session)
     })
     return () => subscription.unsubscribe()
   }, [])
 
+  //  LOGIN CON GOOGLE ACTUALIZADO 
+  const iniciarSesionConGoogle = async () => {
+    try {
+      const { error } = await supabase.auth.signInWithOAuth({
+        provider: 'google',
+        options: { 
+          redirectTo: window.location.origin,
+          // PEDIMOS PERMISO PARA LEER GMAIL
+          scopes: 'https://www.googleapis.com/auth/gmail.readonly',
+          // OBLIGAMOS A GOOGLE A DARNOS UN REFRESH TOKEN
+          queryParams: {
+            access_type: 'offline',
+            prompt: 'consent',
+          }
+        }
+      })
+      if (error) throw error
+    } catch (error) {
+      console.error("Error:", error)
+    }
+  }
+  
   // CARGAR GASTOS AL INICIAR SESIÓN
   useEffect(() => {
     if (session) {
@@ -129,17 +170,7 @@ function App() {
     await supabase.auth.signOut()
   }
 
-  const iniciarSesionConGoogle = async () => {
-    try {
-      const { error } = await supabase.auth.signInWithOAuth({
-        provider: 'google',
-        options: { redirectTo: window.location.origin }
-      })
-      if (error) throw error
-    } catch (error) {
-      console.error("Error:", error)
-    }
-  }
+  
 
   // PANTALLA DE LOGIN
   if (!session) {

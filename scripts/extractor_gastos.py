@@ -8,7 +8,6 @@ import email.utils
 # Importaciones de Google para generar el token
 from google.auth.transport.requests import Request
 from google.oauth2.credentials import Credentials
-from google_auth_oauthlib.flow import InstalledAppFlow
 from googleapiclient.discovery import build
 
 # ARREGLO DE RUTAS DE IMPORTACIÓN
@@ -18,30 +17,36 @@ from database import get_supabase
 supabase = get_supabase()
 
 QUERY_BUSQUEDA = "from:santander (compra OR cargo) (monto OR autorizacion) -documentacion"
-MAX_CORREOS = 10
+MAX_CORREOS = 100
 SCOPES = ['https://www.googleapis.com/auth/gmail.readonly']
 
 
 # GENERADOR DE TOKENS DE GOOGLE
 
-def obtener_servicio_gmail():
-    creds = None
-    if os.path.exists('token.json'):
-        creds = Credentials.from_authorized_user_file('token.json', SCOPES)
+def obtener_servicio_gmail(usuario_id):
+    # Buscamos el token del usuario directamente en la base de datos
+    respuesta = supabase.table('credenciales_google').select('token_data').eq('usuario_id', usuario_id).execute()
     
-    # Si no hay credenciales o no son válidas, hacemos el flujo de login
-    if not creds or not creds.valid:
-        if creds and creds.expired and creds.refresh_token:
-            creds.refresh(Request())
-        else:
-            
-            ruta_credenciales = os.path.join(os.path.dirname(__file__), '..', 'credentials.json')
-            flow = InstalledAppFlow.from_client_secrets_file(ruta_credenciales, SCOPES)
-            creds = flow.run_local_server(port=0)
+    if not respuesta.data:
+        raise Exception("El usuario no tiene credenciales guardadas en la base de datos.")
         
-        # Guardar el token 
-        with open('token.json', 'w') as token:
-            token.write(creds.to_json())
+    token_data = respuesta.data[0]['token_data']
+    
+    # Obtenemos las credenciales del sistema
+    client_id = os.getenv("GOOGLE_CLIENT_ID")
+    client_secret = os.getenv("GOOGLE_CLIENT_SECRET")
+    
+    if not client_id or not client_secret:
+        raise Exception("Faltan GOOGLE_CLIENT_ID o GOOGLE_CLIENT_SECRET en el archivo .env")
+
+    # Construimos el objeto de credenciales en la memoria RAM
+    creds = Credentials(
+        token=token_data.get('access_token'),
+        refresh_token=token_data.get('refresh_token'),
+        token_uri="https://oauth2.googleapis.com/token",
+        client_id=client_id,
+        client_secret=client_secret
+    )
             
     return build('gmail', 'v1', credentials=creds)
 
@@ -76,7 +81,7 @@ def formatear_fecha_para_postgres(fecha_str):
     return datetime.now().isoformat()
 
 def extraer_y_guardar_gastos(usuario_id):
-    servicio = obtener_servicio_gmail()
+    servicio = obtener_servicio_gmail(usuario_id)
     resultados = servicio.users().messages().list(userId='me', q=QUERY_BUSQUEDA, maxResults=MAX_CORREOS).execute()
     mensajes = resultados.get('messages', [])
 

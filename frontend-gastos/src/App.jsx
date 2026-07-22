@@ -161,7 +161,7 @@ function App() {
     }
   }
 
-  //  DATOS PARA GRÁFICAS
+  // --- DATOS PARA GRÁFICAS ---
   const datosPastel = useMemo(() => {
     const agrupado = {};
     gastos.forEach(g => {
@@ -182,23 +182,30 @@ function App() {
     return Object.keys(agrupado).sort().map(key => ({ mes: key, total: agrupado[key] }));
   }, [gastos]);
 
-  // Tomamos solo los últimos 10 gastos para la lista
   const ultimosGastos = gastos.slice(0, 10);
 
-  //  ESTILOS COMPARTIDOS
-  const cardStyle = { backgroundColor: '#ffffff', borderRadius: '16px', padding: '24px', boxShadow: '0 4px 6px -1px rgba(0,0,0,0.05), 0 2px 4px -1px rgba(0,0,0,0.03)', border: '1px solid #e2e8f0' };
-  const inputStyle = { padding: '12px', border: '1px solid #cbd5e1', borderRadius: '8px', fontSize: '0.95rem', width: '100%', boxSizing: 'border-box', outline: 'none' };
-  const btnPrimary = { padding: '12px 20px', backgroundColor: '#3b82f6', color: 'white', border: 'none', borderRadius: '8px', fontWeight: '600', cursor: 'pointer', transition: 'background-color 0.2s', width: '100%' };
+  // --- ESTILOS COMPARTIDOS (MODO OSCURO) ---
+  const bgApp = '#0f172a';
+  const bgCard = '#1e293b';
+  const borderDark = '#334155';
+  const textMain = '#f8fafc';
+  const textMuted = '#94a3b8';
 
+  const cardStyle = { backgroundColor: bgCard, borderRadius: '16px', padding: '24px', boxShadow: '0 4px 6px -1px rgba(0,0,0,0.3)', border: `1px solid ${borderDark}`, color: textMain };
+  const inputStyle = { padding: '12px', backgroundColor: bgApp, color: textMain, border: `1px solid ${borderDark}`, borderRadius: '8px', fontSize: '0.95rem', width: '100%', boxSizing: 'border-box', outline: 'none', colorScheme: 'dark' };
+  const btnPrimary = { padding: '12px 20px', backgroundColor: '#3b82f6', color: textMain, border: 'none', borderRadius: '8px', fontWeight: '600', cursor: 'pointer', transition: 'background-color 0.2s', width: '100%' };
+
+  // ==========================================
   // PANTALLAS
-  
+  // ==========================================
+
   if (!session) {
     return (
-      <div style={{ minHeight: '100vh', backgroundColor: '#f8fafc', display: 'flex', alignItems: 'center', justifyContent: 'center', fontFamily: 'system-ui' }}>
+      <div style={{ minHeight: '100vh', backgroundColor: bgApp, display: 'flex', alignItems: 'center', justifyContent: 'center', fontFamily: 'system-ui' }}>
         <div style={{ ...cardStyle, maxWidth: '400px', width: '90%', textAlign: 'center', padding: '40px 30px' }}>
-          <h2 style={{ margin: '0 0 10px 0', color: '#0f172a', fontSize: '1.8rem' }}>Mis Gastos 💸</h2>
-          <p style={{ color: '#64748b', marginBottom: '30px' }}>Inicia sesión de forma segura para gestionar tu dashboard financiero.</p>
-          <button onClick={iniciarSesionConGoogle} style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '12px', width: '100%', padding: '14px', backgroundColor: '#ffffff', color: '#334155', border: '1px solid #cbd5e1', borderRadius: '8px', fontSize: '1rem', fontWeight: '600', cursor: 'pointer', boxShadow: '0 1px 2px rgba(0,0,0,0.05)' }}>
+          <h2 style={{ margin: '0 0 10px 0', color: textMain, fontSize: '1.8rem' }}>Expense Tracker 💸</h2>
+          <p style={{ color: textMuted, marginBottom: '30px' }}>Inicia sesión de forma segura para gestionar tu dashboard financiero.</p>
+          <button onClick={iniciarSesionConGoogle} style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '12px', width: '100%', padding: '14px', backgroundColor: bgApp, color: textMain, border: `1px solid ${borderDark}`, borderRadius: '8px', fontSize: '1rem', fontWeight: '600', cursor: 'pointer', transition: 'border-color 0.2s' }}>
             <svg width="20" height="20" viewBox="0 0 24 24">
               <path d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z" fill="#4285F4"/>
               <path d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z" fill="#34A853"/>
@@ -213,20 +220,20 @@ function App() {
   }
 
   return (
-    <div style={{ minHeight: '100vh', backgroundColor: '#f8fafc', padding: '30px 20px', fontFamily: 'system-ui' }}>
+    <div style={{ minHeight: '100vh', backgroundColor: bgApp, padding: '30px 20px', fontFamily: 'system-ui' }}>
       <div style={{ maxWidth: '1200px', margin: '0 auto' }}>
         
         {/* HEADER */}
         <header style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '30px', flexWrap: 'wrap', gap: '15px' }}>
           <div>
-            <h1 style={{ margin: 0, color: '#0f172a', fontSize: '2rem' }}>Dashboard Financiero</h1>
-            <p style={{ margin: '5px 0 0 0', color: '#64748b' }}>Monitorea y organiza tus gastos diarios.</p>
+            <h1 style={{ margin: 0, color: textMain, fontSize: '2rem' }}>Expense Tracker 💸</h1>
+            <p style={{ margin: '5px 0 0 0', color: textMuted }}>Monitorea y organiza tus gastos diarios.</p>
           </div>
           <div style={{ display: 'flex', gap: '15px', alignItems: 'center' }}>
             <button onClick={sincronizarCorreos} disabled={sincronizando} style={{ ...btnPrimary, width: 'auto', backgroundColor: '#10b981', display: 'flex', alignItems: 'center', gap: '8px' }}>
               {sincronizando ? '🔄 Buscando...' : '🔄 Sincronizar Santander'}
             </button>
-            <button onClick={cerrarSesion} style={{ background: 'none', border: 'none', color: '#ef4444', fontWeight: '500', cursor: 'pointer', padding: '10px' }}>
+            <button onClick={cerrarSesion} style={{ background: 'none', border: 'none', color: '#f87171', fontWeight: '500', cursor: 'pointer', padding: '10px' }}>
               Cerrar sesión
             </button>
           </div>
@@ -235,12 +242,12 @@ function App() {
         {/* CONTENEDOR PRINCIPAL - 2 COLUMNAS */}
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(380px, 1fr))', gap: '30px', alignItems: 'start' }}>
           
-          {/* PANEL IZQUIERDO: Operaciones (Formulario y Lista) */}
+          {/* PANEL IZQUIERDO: Operaciones */}
           <div style={{ display: 'flex', flexDirection: 'column', gap: '30px' }}>
             
             {/* Formulario */}
             <div style={cardStyle}>
-              <h3 style={{ marginTop: 0, color: '#1e293b', borderBottom: '1px solid #f1f5f9', paddingBottom: '12px', marginBottom: '20px' }}>
+              <h3 style={{ marginTop: 0, color: textMain, borderBottom: `1px solid ${borderDark}`, paddingBottom: '12px', marginBottom: '20px' }}>
                 {formData.id ? '✏️ Editar Gasto' : '➕ Agregar Gasto Manual'}
               </h3>
               <form onSubmit={guardarGasto} style={{ display: 'flex', flexDirection: 'column', gap: '15px' }}>
@@ -249,7 +256,7 @@ function App() {
                   <input type="number" step="0.01" name="monto" placeholder="Monto ($)" value={formData.monto} onChange={manejarCambioInput} required style={inputStyle} />
                   <input type="date" name="fecha_gasto" value={formData.fecha_gasto} onChange={manejarCambioInput} required style={inputStyle} />
                 </div>
-                <select name="categoria_id" value={formData.categoria_id} onChange={manejarCambioInput} style={{ ...inputStyle, backgroundColor: '#fff' }}>
+                <select name="categoria_id" value={formData.categoria_id} onChange={manejarCambioInput} style={inputStyle}>
                   <option value="">-- Selecciona una Categoría --</option>
                   {CATEGORIAS.map(cat => <option key={cat.id} value={cat.id}>{cat.emoji} {cat.nombre}</option>)}
                 </select>
@@ -258,7 +265,7 @@ function App() {
                     {formData.id ? 'Actualizar Gasto' : 'Guardar Gasto'}
                   </button>
                   {formData.id && (
-                    <button type="button" onClick={() => setFormData({ id: null, monto: '', comercio: '', fecha_gasto: '', categoria_id: '' })} style={{ ...btnPrimary, backgroundColor: '#64748b' }}>
+                    <button type="button" onClick={() => setFormData({ id: null, monto: '', comercio: '', fecha_gasto: '', categoria_id: '' })} style={{ ...btnPrimary, backgroundColor: '#475569' }}>
                       Cancelar
                     </button>
                   )}
@@ -268,33 +275,33 @@ function App() {
 
             {/* Lista de últimos gastos */}
             <div style={cardStyle}>
-              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderBottom: '1px solid #f1f5f9', paddingBottom: '12px', marginBottom: '15px' }}>
-                <h3 style={{ margin: 0, color: '#1e293b' }}>Últimos Movimientos</h3>
-                <span style={{ fontSize: '0.85rem', color: '#64748b', backgroundColor: '#f1f5f9', padding: '4px 8px', borderRadius: '12px' }}>Últimos 10</span>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderBottom: `1px solid ${borderDark}`, paddingBottom: '12px', marginBottom: '15px' }}>
+                <h3 style={{ margin: 0, color: textMain }}>Últimos Movimientos</h3>
+                <span style={{ fontSize: '0.85rem', color: '#cbd5e1', backgroundColor: '#334155', padding: '4px 8px', borderRadius: '12px' }}>Últimos 10</span>
               </div>
               
               {cargando ? (
-                <p style={{ color: '#64748b', textAlign: 'center', padding: '20px 0' }}>Cargando datos...</p>
+                <p style={{ color: textMuted, textAlign: 'center', padding: '20px 0' }}>Cargando datos...</p>
               ) : ultimosGastos.length === 0 ? (
-                <p style={{ color: '#64748b', textAlign: 'center', padding: '20px 0' }}>No hay gastos registrados aún.</p>
+                <p style={{ color: textMuted, textAlign: 'center', padding: '20px 0' }}>No hay gastos registrados aún.</p>
               ) : (
                 <ul style={{ listStyle: 'none', padding: 0, margin: 0, display: 'flex', flexDirection: 'column', gap: '10px' }}>
                   {ultimosGastos.map((gasto) => {
                     const categoria = CATEGORIAS.find(c => c.id === gasto.categoria_id);
                     return (
-                      <li key={gasto.id} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '12px', backgroundColor: '#f8fafc', borderRadius: '10px', border: '1px solid #f1f5f9' }}>
+                      <li key={gasto.id} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '12px', backgroundColor: bgApp, borderRadius: '10px', border: `1px solid ${borderDark}` }}>
                         <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
                           <div style={{ fontSize: '1.5rem' }}>{categoria ? categoria.emoji : '💳'}</div>
                           <div>
-                            <strong style={{ color: '#334155', display: 'block', fontSize: '0.95rem' }}>{gasto.comercio}</strong>
-                            <small style={{ color: '#94a3b8' }}>{new Date(gasto.fecha_gasto).toLocaleDateString()}</small>
+                            <strong style={{ color: textMain, display: 'block', fontSize: '0.95rem' }}>{gasto.comercio}</strong>
+                            <small style={{ color: textMuted }}>{new Date(gasto.fecha_gasto).toLocaleDateString()}</small>
                           </div>
                         </div>
                         <div style={{ display: 'flex', alignItems: 'center', gap: '15px' }}>
-                          <div style={{ fontSize: '1.1rem', fontWeight: '700', color: '#0f172a' }}>${gasto.monto}</div>
+                          <div style={{ fontSize: '1.1rem', fontWeight: '700', color: textMain }}>${gasto.monto}</div>
                           <div style={{ display: 'flex', gap: '5px' }}>
-                            <button onClick={() => editarGasto(gasto)} style={{ cursor: 'pointer', padding: '6px', border: 'none', borderRadius: '6px', background: '#e0e7ff', color: '#4f46e5' }}>✏️</button>
-                            <button onClick={() => eliminarGasto(gasto.id)} style={{ cursor: 'pointer', padding: '6px', border: 'none', borderRadius: '6px', background: '#fee2e2', color: '#ef4444' }}>🗑️</button>
+                            <button onClick={() => editarGasto(gasto)} style={{ cursor: 'pointer', padding: '6px', border: 'none', borderRadius: '6px', background: '#312e81', color: '#a5b4fc' }}>✏️</button>
+                            <button onClick={() => eliminarGasto(gasto.id)} style={{ cursor: 'pointer', padding: '6px', border: 'none', borderRadius: '6px', background: '#7f1d1d', color: '#fca5a5' }}>🗑️</button>
                           </div>
                         </div>
                       </li>
@@ -305,48 +312,48 @@ function App() {
             </div>
           </div>
 
-          {/* PANEL DERECHO donde van las graficas */}
+          {/* PANEL DERECHO: Analíticas */}
           <div style={{ display: 'flex', flexDirection: 'column', gap: '30px' }}>
             
             {/* Gráfica de Pastel */}
             <div style={cardStyle}>
-              <h3 style={{ marginTop: 0, color: '#1e293b', borderBottom: '1px solid #f1f5f9', paddingBottom: '12px', marginBottom: '20px' }}>Distribución de Gastos</h3>
+              <h3 style={{ marginTop: 0, color: textMain, borderBottom: `1px solid ${borderDark}`, paddingBottom: '12px', marginBottom: '20px' }}>Distribución de Gastos</h3>
               {gastos.length > 0 ? (
                 <div style={{ width: '100%', height: 300 }}>
                   <ResponsiveContainer>
                     <PieChart>
                       <Pie data={datosPastel} dataKey="value" nameKey="name" cx="50%" cy="50%" innerRadius={60} outerRadius={100} fill="#8884d8" paddingAngle={5}>
                         {datosPastel.map((entry, index) => (
-                          <Cell key={`cell-${index}`} fill={COLORES[index % COLORES.length]} />
+                          <Cell key={`cell-${index}`} fill={COLORES[index % COLORES.length]} stroke={bgCard} strokeWidth={2} />
                         ))}
                       </Pie>
-                      <Tooltip formatter={(value) => `$${value.toFixed(2)}`} contentStyle={{ borderRadius: '8px', border: 'none', boxShadow: '0 4px 6px -1px rgba(0,0,0,0.1)' }} />
-                      <Legend verticalAlign="bottom" height={36} iconType="circle" />
+                      <Tooltip formatter={(value) => `$${value.toFixed(2)}`} contentStyle={{ backgroundColor: bgCard, borderColor: borderDark, color: textMain, borderRadius: '8px' }} itemStyle={{ color: textMain }} />
+                      <Legend verticalAlign="bottom" height={36} iconType="circle" wrapperStyle={{ color: textMain }} />
                     </PieChart>
                   </ResponsiveContainer>
                 </div>
               ) : (
-                 <div style={{ height: '300px', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#94a3b8' }}>Sin datos suficientes</div>
+                 <div style={{ height: '300px', display: 'flex', alignItems: 'center', justifyContent: 'center', color: textMuted }}>Sin datos suficientes</div>
               )}
             </div>
 
             {/* Gráfica de Barras */}
             <div style={cardStyle}>
-              <h3 style={{ marginTop: 0, color: '#1e293b', borderBottom: '1px solid #f1f5f9', paddingBottom: '12px', marginBottom: '20px' }}>Tendencia Mensual</h3>
+              <h3 style={{ marginTop: 0, color: textMain, borderBottom: `1px solid ${borderDark}`, paddingBottom: '12px', marginBottom: '20px' }}>Tendencia Mensual</h3>
               {gastos.length > 0 ? (
                 <div style={{ width: '100%', height: 300 }}>
                   <ResponsiveContainer>
                     <BarChart data={datosBarras} margin={{ top: 10, right: 10, left: -20, bottom: 0 }}>
-                      <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#e2e8f0" />
-                      <XAxis dataKey="mes" axisLine={false} tickLine={false} tick={{ fill: '#64748b', fontSize: 12 }} dy={10} />
-                      <YAxis tickFormatter={(value) => `$${value}`} axisLine={false} tickLine={false} tick={{ fill: '#64748b', fontSize: 12 }} />
-                      <Tooltip formatter={(value) => `$${value.toFixed(2)}`} cursor={{ fill: '#f1f5f9' }} contentStyle={{ borderRadius: '8px', border: 'none', boxShadow: '0 4px 6px -1px rgba(0,0,0,0.1)' }} />
+                      <CartesianGrid strokeDasharray="3 3" vertical={false} stroke={borderDark} />
+                      <XAxis dataKey="mes" axisLine={false} tickLine={false} tick={{ fill: textMuted, fontSize: 12 }} dy={10} />
+                      <YAxis tickFormatter={(value) => `$${value}`} axisLine={false} tickLine={false} tick={{ fill: textMuted, fontSize: 12 }} />
+                      <Tooltip formatter={(value) => `$${value.toFixed(2)}`} cursor={{ fill: borderDark }} contentStyle={{ backgroundColor: bgCard, borderColor: borderDark, color: textMain, borderRadius: '8px' }} itemStyle={{ color: textMain }} />
                       <Bar dataKey="total" fill="#3b82f6" radius={[6, 6, 0, 0]} barSize={40} />
                     </BarChart>
                   </ResponsiveContainer>
                 </div>
               ) : (
-                <div style={{ height: '300px', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#94a3b8' }}>Sin datos suficientes</div>
+                <div style={{ height: '300px', display: 'flex', alignItems: 'center', justifyContent: 'center', color: textMuted }}>Sin datos suficientes</div>
               )}
             </div>
 

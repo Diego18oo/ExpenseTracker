@@ -5,16 +5,15 @@ import { PieChart, Pie, Cell, BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveCo
 const API_URL = import.meta.env.VITE_API_URL || 'http://127.0.0.1:8000';
 
 const CATEGORIAS = [
-  { id: 1, nombre: 'Alimentos y Bebidas' },
-  { id: 2, nombre: 'Transporte' },
-  { id: 3, nombre: 'Suscripciones y Software' },
-  { id: 4, nombre: 'Escuela' },
-  { id: 5, nombre: 'Entretenimiento' },
-  { id: 6, nombre: 'Otros' }
+  { id: 1, nombre: 'Alimentos y Bebidas', emoji: '🍔' },
+  { id: 2, nombre: 'Transporte', emoji: '🚗' },
+  { id: 3, nombre: 'Suscripciones y Software', emoji: '💻' },
+  { id: 4, nombre: 'Escuela', emoji: '📚' },
+  { id: 5, nombre: 'Entretenimiento', emoji: '🍿' },
+  { id: 6, nombre: 'Otros', emoji: '📦' }
 ];
 
-// Paleta de colores para las gráficas
-const COLORES = ['#0088FE', '#00C49F', '#FFBB28', '#FF8042', '#8884d8', '#ff6666'];
+const COLORES = ['#3b82f6', '#10b981', '#f59e0b', '#ef4444', '#8b5cf6', '#64748b'];
 
 function App() {
   const [session, setSession] = useState(null)
@@ -111,7 +110,6 @@ function App() {
         },
         body: JSON.stringify(bodyData)
       })
-      alert(`Gasto ${formData.id ? 'actualizado' : 'agregado'} con éxito`)
       setFormData({ id: null, monto: '', comercio: '', fecha_gasto: '', categoria_id: '' })
       cargarGastos()
     } catch (error) {
@@ -163,164 +161,197 @@ function App() {
     }
   }
 
-  // LÓGICA DE GRÁFICAS
-  
-  // Datos para la gráfica de Pastel (Sumar por Categoría)
+  //  DATOS PARA GRÁFICAS
   const datosPastel = useMemo(() => {
     const agrupado = {};
     gastos.forEach(g => {
       const cat = CATEGORIAS.find(c => c.id === g.categoria_id)?.nombre || 'Otros';
       agrupado[cat] = (agrupado[cat] || 0) + parseFloat(g.monto);
     });
-    // Convertir a un arreglo y ordenar de mayor a menor gasto
     return Object.keys(agrupado)
       .map(key => ({ name: key, value: agrupado[key] }))
       .sort((a, b) => b.value - a.value);
   }, [gastos]);
 
-  // Datos para la gráfica de Barras (Sumar por Mes)
   const datosBarras = useMemo(() => {
     const agrupado = {};
     gastos.forEach(g => {
-      // Extraemos solo el año y mes (Ej: "2026-07")
       const mes = g.fecha_gasto.substring(0, 7); 
       agrupado[mes] = (agrupado[mes] || 0) + parseFloat(g.monto);
     });
-    // Convertir a un arreglo y ordenar cronológicamente
-    return Object.keys(agrupado)
-      .sort()
-      .map(key => ({ mes: key, total: agrupado[key] }));
+    return Object.keys(agrupado).sort().map(key => ({ mes: key, total: agrupado[key] }));
   }, [gastos]);
 
+  // Tomamos solo los últimos 10 gastos para la lista
+  const ultimosGastos = gastos.slice(0, 10);
+
+  //  ESTILOS COMPARTIDOS
+  const cardStyle = { backgroundColor: '#ffffff', borderRadius: '16px', padding: '24px', boxShadow: '0 4px 6px -1px rgba(0,0,0,0.05), 0 2px 4px -1px rgba(0,0,0,0.03)', border: '1px solid #e2e8f0' };
+  const inputStyle = { padding: '12px', border: '1px solid #cbd5e1', borderRadius: '8px', fontSize: '0.95rem', width: '100%', boxSizing: 'border-box', outline: 'none' };
+  const btnPrimary = { padding: '12px 20px', backgroundColor: '#3b82f6', color: 'white', border: 'none', borderRadius: '8px', fontWeight: '600', cursor: 'pointer', transition: 'background-color 0.2s', width: '100%' };
 
   // PANTALLAS
   
   if (!session) {
     return (
-      <div style={{ maxWidth: '400px', margin: '100px auto', fontFamily: 'system-ui', textAlign: 'center', padding: '30px', border: '1px solid #eaeaea', borderRadius: '12px', boxShadow: '0 4px 6px rgba(0,0,0,0.05)' }}>
-        <h2 style={{ marginBottom: '10px' }}>Bienvenido a Mis Gastos 💸</h2>
-        <p style={{ color: '#666', marginBottom: '30px' }}>Inicia sesión de forma segura para gestionar tus finanzas.</p>
-        <button onClick={iniciarSesionConGoogle} style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '10px', width: '100%', padding: '12px', backgroundColor: 'white', color: '#333', border: '1px solid #ccc', borderRadius: '8px', fontSize: '1rem', fontWeight: '500', cursor: 'pointer' }}>
-          <svg width="20" height="20" viewBox="0 0 24 24">
-            <path d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z" fill="#4285F4"/>
-            <path d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z" fill="#34A853"/>
-            <path d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z" fill="#FBBC05"/>
-            <path d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z" fill="#EA4335"/>
-          </svg>
-          Continuar con Google
-        </button>
+      <div style={{ minHeight: '100vh', backgroundColor: '#f8fafc', display: 'flex', alignItems: 'center', justifyContent: 'center', fontFamily: 'system-ui' }}>
+        <div style={{ ...cardStyle, maxWidth: '400px', width: '90%', textAlign: 'center', padding: '40px 30px' }}>
+          <h2 style={{ margin: '0 0 10px 0', color: '#0f172a', fontSize: '1.8rem' }}>Mis Gastos 💸</h2>
+          <p style={{ color: '#64748b', marginBottom: '30px' }}>Inicia sesión de forma segura para gestionar tu dashboard financiero.</p>
+          <button onClick={iniciarSesionConGoogle} style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '12px', width: '100%', padding: '14px', backgroundColor: '#ffffff', color: '#334155', border: '1px solid #cbd5e1', borderRadius: '8px', fontSize: '1rem', fontWeight: '600', cursor: 'pointer', boxShadow: '0 1px 2px rgba(0,0,0,0.05)' }}>
+            <svg width="20" height="20" viewBox="0 0 24 24">
+              <path d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z" fill="#4285F4"/>
+              <path d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z" fill="#34A853"/>
+              <path d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z" fill="#FBBC05"/>
+              <path d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z" fill="#EA4335"/>
+            </svg>
+            Continuar con Google
+          </button>
+        </div>
       </div>
     )
   }
 
   return (
-    <div style={{ maxWidth: '800px', margin: '0 auto', fontFamily: 'system-ui', padding: '20px' }}>
-      <header style={{ display: 'flex', flexDirection: 'column', gap: '10px', marginBottom: '20px' }}>
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-          <h1>Mis Gastos 💸</h1>
-          <button onClick={cerrarSesion} style={{ background: 'none', border: 'none', color: '#ff4d4f', cursor: 'pointer', textDecoration: 'underline' }}>
-            Cerrar sesión
-          </button>
-        </div>
-        <button onClick={sincronizarCorreos} disabled={sincronizando} style={{ padding: '10px 15px', cursor: 'pointer', backgroundColor: '#0070f3', color: 'white', border: 'none', borderRadius: '5px', width: 'fit-content' }}>
-          {sincronizando ? '🔄 Buscando...' : '🔄 Sincronizar Gmail'}
-        </button>
-      </header>
+    <div style={{ minHeight: '100vh', backgroundColor: '#f8fafc', padding: '30px 20px', fontFamily: 'system-ui' }}>
+      <div style={{ maxWidth: '1200px', margin: '0 auto' }}>
+        
+        {/* HEADER */}
+        <header style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '30px', flexWrap: 'wrap', gap: '15px' }}>
+          <div>
+            <h1 style={{ margin: 0, color: '#0f172a', fontSize: '2rem' }}>Dashboard Financiero</h1>
+            <p style={{ margin: '5px 0 0 0', color: '#64748b' }}>Monitorea y organiza tus gastos diarios.</p>
+          </div>
+          <div style={{ display: 'flex', gap: '15px', alignItems: 'center' }}>
+            <button onClick={sincronizarCorreos} disabled={sincronizando} style={{ ...btnPrimary, width: 'auto', backgroundColor: '#10b981', display: 'flex', alignItems: 'center', gap: '8px' }}>
+              {sincronizando ? '🔄 Buscando...' : '🔄 Sincronizar Santander'}
+            </button>
+            <button onClick={cerrarSesion} style={{ background: 'none', border: 'none', color: '#ef4444', fontWeight: '500', cursor: 'pointer', padding: '10px' }}>
+              Cerrar sesión
+            </button>
+          </div>
+        </header>
 
-      {/* ZONA DE DASHBOARD (GRÁFICAS) */}
-      {!cargando && gastos.length > 0 && (
-        <div style={{ display: 'flex', flexWrap: 'wrap', gap: '20px', marginBottom: '30px' }}>
+        {/* CONTENEDOR PRINCIPAL - 2 COLUMNAS */}
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(380px, 1fr))', gap: '30px', alignItems: 'start' }}>
           
-          {/* Gráfica de Pastel */}
-          <div style={{ flex: '1 1 300px', backgroundColor: '#fff', padding: '20px', borderRadius: '10px', border: '1px solid #eaeaea', boxShadow: '0 2px 4px rgba(0,0,0,0.02)' }}>
-            <h3 style={{ textAlign: 'center', marginTop: 0, color: '#333' }}>Gastos por Categoría</h3>
-            <div style={{ width: '100%', height: 250 }}>
-              <ResponsiveContainer>
-                <PieChart>
-                  <Pie data={datosPastel} dataKey="value" nameKey="name" cx="50%" cy="50%" outerRadius={80} fill="#8884d8" label>
-                    {datosPastel.map((entry, index) => (
-                      <Cell key={`cell-${index}`} fill={COLORES[index % COLORES.length]} />
-                    ))}
-                  </Pie>
-                  <Tooltip formatter={(value) => `$${value.toFixed(2)}`} />
-                  <Legend />
-                </PieChart>
-              </ResponsiveContainer>
+          {/* PANEL IZQUIERDO: Operaciones (Formulario y Lista) */}
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '30px' }}>
+            
+            {/* Formulario */}
+            <div style={cardStyle}>
+              <h3 style={{ marginTop: 0, color: '#1e293b', borderBottom: '1px solid #f1f5f9', paddingBottom: '12px', marginBottom: '20px' }}>
+                {formData.id ? '✏️ Editar Gasto' : '➕ Agregar Gasto Manual'}
+              </h3>
+              <form onSubmit={guardarGasto} style={{ display: 'flex', flexDirection: 'column', gap: '15px' }}>
+                <input type="text" name="comercio" placeholder="Nombre del Comercio" value={formData.comercio} onChange={manejarCambioInput} required style={inputStyle} />
+                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '15px' }}>
+                  <input type="number" step="0.01" name="monto" placeholder="Monto ($)" value={formData.monto} onChange={manejarCambioInput} required style={inputStyle} />
+                  <input type="date" name="fecha_gasto" value={formData.fecha_gasto} onChange={manejarCambioInput} required style={inputStyle} />
+                </div>
+                <select name="categoria_id" value={formData.categoria_id} onChange={manejarCambioInput} style={{ ...inputStyle, backgroundColor: '#fff' }}>
+                  <option value="">-- Selecciona una Categoría --</option>
+                  {CATEGORIAS.map(cat => <option key={cat.id} value={cat.id}>{cat.emoji} {cat.nombre}</option>)}
+                </select>
+                <div style={{ display: 'flex', gap: '10px', marginTop: '5px' }}>
+                  <button type="submit" style={btnPrimary}>
+                    {formData.id ? 'Actualizar Gasto' : 'Guardar Gasto'}
+                  </button>
+                  {formData.id && (
+                    <button type="button" onClick={() => setFormData({ id: null, monto: '', comercio: '', fecha_gasto: '', categoria_id: '' })} style={{ ...btnPrimary, backgroundColor: '#64748b' }}>
+                      Cancelar
+                    </button>
+                  )}
+                </div>
+              </form>
             </div>
-          </div>
 
-          {/* Gráfica de Barras */}
-          <div style={{ flex: '1 1 300px', backgroundColor: '#fff', padding: '20px', borderRadius: '10px', border: '1px solid #eaeaea', boxShadow: '0 2px 4px rgba(0,0,0,0.02)' }}>
-            <h3 style={{ textAlign: 'center', marginTop: 0, color: '#333' }}>Tendencia Mensual</h3>
-            <div style={{ width: '100%', height: 250 }}>
-              <ResponsiveContainer>
-                <BarChart data={datosBarras}>
-                  <CartesianGrid strokeDasharray="3 3" vertical={false} />
-                  <XAxis dataKey="mes" />
-                  <YAxis tickFormatter={(value) => `$${value}`} width={60} />
-                  <Tooltip formatter={(value) => `$${value.toFixed(2)}`} />
-                  <Bar dataKey="total" fill="#0070f3" radius={[4, 4, 0, 0]} />
-                </BarChart>
-              </ResponsiveContainer>
-            </div>
-          </div>
-
-        </div>
-      )}
-
-      {/* FORMULARIO Y LISTA DE GASTOS */}
-      <div style={{ display: 'flex', gap: '20px', flexWrap: 'wrap' }}>
-        <div style={{ flex: '1 1 300px', backgroundColor: '#f9f9f9', padding: '15px', borderRadius: '8px', height: 'fit-content' }}>
-          <h3 style={{marginTop: 0}}>{formData.id ? '✏️ Editar Gasto' : '➕ Agregar Gasto'}</h3>
-          <form onSubmit={guardarGasto} style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
-            <input type="text" name="comercio" placeholder="Comercio" value={formData.comercio} onChange={manejarCambioInput} required style={{ padding: '8px', border: '1px solid #ccc', borderRadius: '4px' }} />
-            <input type="number" step="0.01" name="monto" placeholder="Monto ($)" value={formData.monto} onChange={manejarCambioInput} required style={{ padding: '8px', border: '1px solid #ccc', borderRadius: '4px' }} />
-            <input type="date" name="fecha_gasto" value={formData.fecha_gasto} onChange={manejarCambioInput} required style={{ padding: '8px', border: '1px solid #ccc', borderRadius: '4px' }} />
-            <select name="categoria_id" value={formData.categoria_id} onChange={manejarCambioInput} style={{ padding: '8px', border: '1px solid #ccc', borderRadius: '4px' }}>
-              <option value="">-- Sin Categoría --</option>
-              {CATEGORIAS.map(cat => <option key={cat.id} value={cat.id}>{cat.nombre}</option>)}
-            </select>
-            <div style={{ display: 'flex', gap: '10px' }}>
-              <button type="submit" style={{ flex: 1, padding: '10px', backgroundColor: '#28a745', color: 'white', border: 'none', borderRadius: '5px', cursor: 'pointer' }}>
-                {formData.id ? 'Actualizar' : 'Guardar'}
-              </button>
-              {formData.id && (
-                <button type="button" onClick={() => setFormData({ id: null, monto: '', comercio: '', fecha_gasto: '', categoria_id: '' })} style={{ padding: '10px', backgroundColor: '#6c757d', color: 'white', border: 'none', borderRadius: '5px', cursor: 'pointer' }}>
-                  Cancelar
-                </button>
+            {/* Lista de últimos gastos */}
+            <div style={cardStyle}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderBottom: '1px solid #f1f5f9', paddingBottom: '12px', marginBottom: '15px' }}>
+                <h3 style={{ margin: 0, color: '#1e293b' }}>Últimos Movimientos</h3>
+                <span style={{ fontSize: '0.85rem', color: '#64748b', backgroundColor: '#f1f5f9', padding: '4px 8px', borderRadius: '12px' }}>Últimos 10</span>
+              </div>
+              
+              {cargando ? (
+                <p style={{ color: '#64748b', textAlign: 'center', padding: '20px 0' }}>Cargando datos...</p>
+              ) : ultimosGastos.length === 0 ? (
+                <p style={{ color: '#64748b', textAlign: 'center', padding: '20px 0' }}>No hay gastos registrados aún.</p>
+              ) : (
+                <ul style={{ listStyle: 'none', padding: 0, margin: 0, display: 'flex', flexDirection: 'column', gap: '10px' }}>
+                  {ultimosGastos.map((gasto) => {
+                    const categoria = CATEGORIAS.find(c => c.id === gasto.categoria_id);
+                    return (
+                      <li key={gasto.id} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '12px', backgroundColor: '#f8fafc', borderRadius: '10px', border: '1px solid #f1f5f9' }}>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+                          <div style={{ fontSize: '1.5rem' }}>{categoria ? categoria.emoji : '💳'}</div>
+                          <div>
+                            <strong style={{ color: '#334155', display: 'block', fontSize: '0.95rem' }}>{gasto.comercio}</strong>
+                            <small style={{ color: '#94a3b8' }}>{new Date(gasto.fecha_gasto).toLocaleDateString()}</small>
+                          </div>
+                        </div>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '15px' }}>
+                          <div style={{ fontSize: '1.1rem', fontWeight: '700', color: '#0f172a' }}>${gasto.monto}</div>
+                          <div style={{ display: 'flex', gap: '5px' }}>
+                            <button onClick={() => editarGasto(gasto)} style={{ cursor: 'pointer', padding: '6px', border: 'none', borderRadius: '6px', background: '#e0e7ff', color: '#4f46e5' }}>✏️</button>
+                            <button onClick={() => eliminarGasto(gasto.id)} style={{ cursor: 'pointer', padding: '6px', border: 'none', borderRadius: '6px', background: '#fee2e2', color: '#ef4444' }}>🗑️</button>
+                          </div>
+                        </div>
+                      </li>
+                    )
+                  })}
+                </ul>
               )}
             </div>
-          </form>
-        </div>
+          </div>
 
-        <div style={{ flex: '2 1 400px' }}>
-          {cargando ? (
-            <p>Cargando datos...</p>
-          ) : (
-            <ul style={{ listStyle: 'none', padding: 0, margin: 0 }}>
-              {gastos.map((gasto) => {
-                const categoria = CATEGORIAS.find(c => c.id === gasto.categoria_id);
-                return (
-                  <li key={gasto.id} style={{ borderBottom: '1px solid #eaeaea', padding: '15px 0', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                    <div>
-                      <strong>{gasto.comercio}</strong> 
-                      {categoria && <span style={{ fontSize: '0.75rem', backgroundColor: '#e2e8f0', color: '#475569', padding: '3px 8px', borderRadius: '12px', marginLeft: '8px', fontWeight: '500' }}>{categoria.nombre}</span>}
-                      <br/>
-                      <small style={{ color: '#888' }}>{new Date(gasto.fecha_gasto).toLocaleDateString()}</small>
-                    </div>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '15px' }}>
-                      <div style={{ fontSize: '1.2rem', fontWeight: 'bold', color: '#333' }}>${gasto.monto}</div>
-                      <div style={{ display: 'flex', gap: '5px' }}>
-                        <button onClick={() => editarGasto(gasto)} style={{ cursor: 'pointer', padding: '6px 10px', border: '1px solid #e2e8f0', borderRadius: '6px', background: 'white' }}>✏️</button>
-                        <button onClick={() => eliminarGasto(gasto.id)} style={{ cursor: 'pointer', padding: '6px 10px', border: '1px solid #fee2e2', color: '#ef4444', borderRadius: '6px', background: '#fef2f2' }}>🗑️</button>
-                      </div>
-                    </div>
-                  </li>
-                )
-              })}
-              {gastos.length === 0 && <p style={{textAlign: 'center', color: '#666'}}>No hay gastos registrados. ¡Agrega uno o sincroniza tu correo!</p>}
-            </ul>
-          )}
+          {/* PANEL DERECHO donde van las graficas */}
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '30px' }}>
+            
+            {/* Gráfica de Pastel */}
+            <div style={cardStyle}>
+              <h3 style={{ marginTop: 0, color: '#1e293b', borderBottom: '1px solid #f1f5f9', paddingBottom: '12px', marginBottom: '20px' }}>Distribución de Gastos</h3>
+              {gastos.length > 0 ? (
+                <div style={{ width: '100%', height: 300 }}>
+                  <ResponsiveContainer>
+                    <PieChart>
+                      <Pie data={datosPastel} dataKey="value" nameKey="name" cx="50%" cy="50%" innerRadius={60} outerRadius={100} fill="#8884d8" paddingAngle={5}>
+                        {datosPastel.map((entry, index) => (
+                          <Cell key={`cell-${index}`} fill={COLORES[index % COLORES.length]} />
+                        ))}
+                      </Pie>
+                      <Tooltip formatter={(value) => `$${value.toFixed(2)}`} contentStyle={{ borderRadius: '8px', border: 'none', boxShadow: '0 4px 6px -1px rgba(0,0,0,0.1)' }} />
+                      <Legend verticalAlign="bottom" height={36} iconType="circle" />
+                    </PieChart>
+                  </ResponsiveContainer>
+                </div>
+              ) : (
+                 <div style={{ height: '300px', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#94a3b8' }}>Sin datos suficientes</div>
+              )}
+            </div>
+
+            {/* Gráfica de Barras */}
+            <div style={cardStyle}>
+              <h3 style={{ marginTop: 0, color: '#1e293b', borderBottom: '1px solid #f1f5f9', paddingBottom: '12px', marginBottom: '20px' }}>Tendencia Mensual</h3>
+              {gastos.length > 0 ? (
+                <div style={{ width: '100%', height: 300 }}>
+                  <ResponsiveContainer>
+                    <BarChart data={datosBarras} margin={{ top: 10, right: 10, left: -20, bottom: 0 }}>
+                      <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#e2e8f0" />
+                      <XAxis dataKey="mes" axisLine={false} tickLine={false} tick={{ fill: '#64748b', fontSize: 12 }} dy={10} />
+                      <YAxis tickFormatter={(value) => `$${value}`} axisLine={false} tickLine={false} tick={{ fill: '#64748b', fontSize: 12 }} />
+                      <Tooltip formatter={(value) => `$${value.toFixed(2)}`} cursor={{ fill: '#f1f5f9' }} contentStyle={{ borderRadius: '8px', border: 'none', boxShadow: '0 4px 6px -1px rgba(0,0,0,0.1)' }} />
+                      <Bar dataKey="total" fill="#3b82f6" radius={[6, 6, 0, 0]} barSize={40} />
+                    </BarChart>
+                  </ResponsiveContainer>
+                </div>
+              ) : (
+                <div style={{ height: '300px', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#94a3b8' }}>Sin datos suficientes</div>
+              )}
+            </div>
+
+          </div>
+
         </div>
       </div>
     </div>
